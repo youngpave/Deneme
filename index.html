@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MAÇTV | VIP Panel</title>
+    <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet" />
+    <style>
+        :root { --bg: #05070a; --card: #121620; --blue: #2563eb; --gray: #94a3b8; }
+        
+        html, body { 
+            background: var(--bg); 
+            color: white; 
+            font-family: -apple-system, sans-serif; 
+            margin: 0; padding: 0; 
+            height: 100%; overflow: hidden; 
+        }
+
+        #player-container { 
+            width: 100%; 
+            background: #000; 
+            position: fixed; 
+            top: 0; left: 0;
+            z-index: 1000; 
+            border-bottom: 2px solid var(--blue);
+            display: flex;
+            justify-content: center;
+        }
+
+        @media (max-width: 1023px) { #player-container { aspect-ratio: 16 / 9; } }
+        @media (min-width: 1024px) { #player-container { height: 420px; } }
+
+        .video-js { width: 100% !important; height: 100% !important; }
+        iframe { width: 100%; height: 100%; border: none; display: none; background: #000; }
+
+        .container { 
+            height: 100vh; 
+            overflow-y: auto; 
+            padding: 15px;
+            box-sizing: border-box;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        @media (max-width: 1023px) { .container { padding-top: calc(56.25vw + 15px); } }
+        @media (min-width: 1024px) { .container { padding-top: 435px; max-width: 900px; margin: 0 auto; } }
+
+        .ch-card { 
+            background: var(--card); 
+            display: flex; 
+            align-items: center; 
+            padding: 14px; 
+            border-radius: 12px; 
+            margin-bottom: 10px; 
+            cursor: pointer; 
+            border: 1px solid rgba(255,255,255,0.05); 
+            transition: 0.3s; 
+        }
+        .ch-card:hover { border-color: var(--blue); }
+        .ch-card:active { transform: scale(0.97); background: #1a202e; }
+        
+        .icon { 
+            width: 40px; height: 40px; 
+            background: linear-gradient(135deg, var(--blue), #1e40af); 
+            border-radius: 10px; 
+            margin-right: 15px; 
+            display: flex; align-items: center; justify-content: center; 
+            font-weight: bold; font-size: 11px; text-transform: uppercase;
+        }
+        .info { flex: 1; }
+        .title { display: block; font-size: 15px; font-weight: 600; }
+        .tag { font-size: 9px; color: var(--gray); text-transform: uppercase; letter-spacing: 1px; }
+        
+        .play-btn { color: var(--blue); font-size: 18px; }
+        .vjs-play-progress { background-color: var(--blue) !important; }
+    </style>
+</head>
+<body>
+
+    <div id="player-container">
+        <video id="my-video" class="video-js vjs-big-play-centered" controls preload="auto" playsinline></video>
+        <iframe id="external-frame" allowfullscreen></iframe>
+    </div>
+
+    <div class="container" id="channel-list"></div>
+
+    <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
+    <script>
+        const videoPlayer = videojs('my-video');
+        const iframe = document.getElementById('external-frame');
+        const videoElement = document.getElementById('my-video');
+
+        const channels = [
+            { name: "UFC LIVE", url: "https://trendy47.dad/event/live-event_ufc-327-prochazka-vs-ulberg-live-stream" },
+            { name: "BEIN SPORTS HABER", url: "https://www.canlitv.diy/player/iframe.php?url=https://www.youtube.com/embed/i7UpPgxfZZ8" },
+            { name: "BEIN SPORTS 1 HD", url: "https://l1l1.link/stream?id=91" },
+            { name: "BEIN SPORTS 1 iOS", url: "https://andro.evrenosoglu53.lat/checklist/androstreamlivedebs1.m3u8" },
+            { name: "BEIN SPORTS 2", url: "https://zonalive.click/player/33/152" },
+            { name: "S SPORT 1", url: "https://andro.evrenosoglu53.lat/checklist/androstreamlivedess1.m3u8" },
+            { name: "S SPORT 2", url: "https://andro.evrenosoglu53.lat/checklist/androstreamlivedess2.m3u8" },
+            { name: "TV8.5 HD", url: "https://rkhubpaomb.turknet.ercdn.net/fwjkgpasof/tv8bucuk/tv8bucuk.m3u8" },
+            { name: "TRT SPOR", url: "https://tv-trtspor1.medya.trt.com.tr/master_1080.m3u8" },
+            { name: "TABİİ SPOR 1", url: "https://74betorspintv.live/channel?id=ex1" },
+            { name: "TABİİ SPOR 2", url: "https://mr8bv4kl1nq7sh9tw2xp5zj6g.medya.trt.com.tr/master_1440p.m3u8" },
+            { 
+                name: "TABİİ SPOR 7 (VIP)", 
+                url: "proxy.php?url=" + encodeURIComponent("http://hayattv.pepbox.xyz:2095/live/smm0917tv2/smm1801zz00bb99/32770.m3u8"),
+                isM3U8: true
+            }
+        ];
+
+        function playChannel(url, isM3U8) {
+            const isDirectM3U8 = url.includes('.m3u8') || isM3U8 || url.includes('proxy.php');
+            
+            if (isDirectM3U8) {
+                iframe.style.display = 'none';
+                videoElement.style.display = 'block';
+                videoPlayer.src({ src: url, type: 'application/x-mpegURL' });
+                videoPlayer.play();
+            } else {
+                videoPlayer.pause();
+                videoElement.style.display = 'none';
+                iframe.style.display = 'block';
+                iframe.src = url;
+            }
+        }
+
+        const listDiv = document.getElementById('channel-list');
+        channels.forEach(ch => {
+            const card = document.createElement('div');
+            card.className = 'ch-card';
+            card.onclick = () => playChannel(ch.url, ch.isM3U8);
+            card.innerHTML = `
+                <div class="icon">${ch.name.substring(0,3)}</div>
+                <div class="info">
+                    <span class="title">${ch.name}</span>
+                    <span class="tag">MAÇTV Kesintisiz</span>
+                </div>
+                <div class="play-btn">▶</div>
+            `;
+            listDiv.appendChild(card);
+        });
+    </script>
+</body>
+</html>
