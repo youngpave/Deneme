@@ -6,117 +6,48 @@
     <title>MAÇTV | VIP Panel</title>
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <style>
-        :root { --bg: #05070a; --blue: #2563eb; }
-        body { background: var(--bg); color: white; margin: 0; font-family: sans-serif; }
-
-        /* PLAYER KONTEYNER */
-        #player-outer {
-            width: 100%;
-            position: fixed;
-            top: 0; left: 0;
-            z-index: 1000;
-            background: #000;
-            aspect-ratio: 16 / 9;
-            transition: all 0.3s ease;
+        :root { --bg: #05070a; --card: #121620; --blue: #2563eb; }
+        body { background: var(--bg); color: white; margin: 0; font-family: -apple-system, sans-serif; overflow-x: hidden; }
+        
+        #player-wrapper {
+            width: 100%; position: fixed; top: 0; left: 0; z-index: 1000;
+            background: #000; aspect-ratio: 16 / 9; border-bottom: 2px solid var(--blue);
         }
 
-        /* SAHTE TAM EKRAN CLASS'I (Reklamsız Büyütme) */
-        #player-outer.pseudo-fs {
-            width: 100vw !important;
-            height: 100vh !important;
-            aspect-ratio: auto !important;
-            position: fixed !important;
-            top: 0 !important; left: 0 !important;
-            z-index: 99999 !important;
+        #player-wrapper.fullscreen-mode {
+            width: 100vw !important; height: 100vh !important; aspect-ratio: auto !important; z-index: 99999 !important;
         }
 
         .video-js, iframe { width: 100% !important; height: 100% !important; border: none; }
 
-        /* ÖZEL KONTROL BUTONU */
-        #custom-controls {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            z-index: 100001;
-            display: flex;
-            gap: 5px;
-        }
-
-        .fs-btn {
-            background: rgba(37, 99, 235, 0.9);
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        #ui-overlay { position: absolute; bottom: 10px; right: 10px; z-index: 100000; }
+        .action-btn {
+            background: rgba(37, 99, 235, 0.9); color: white; border: none;
+            padding: 8px 12px; border-radius: 6px; font-weight: bold; font-size: 11px;
         }
 
         .container { margin-top: calc(56.25vw + 20px); padding: 15px; }
-        .ch-card { background: #121620; padding: 15px; margin-bottom: 10px; border-radius: 10px; cursor: pointer; border: 1px solid #1e293b; }
+        .ch-card { 
+            background: var(--card); padding: 15px; margin-bottom: 8px; 
+            border-radius: 12px; cursor: pointer; border: 1px solid rgba(255,255,255,0.05);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .ch-title { font-weight: 600; font-size: 14px; }
+
+        @media (min-width: 1024px) {
+            #player-wrapper { height: 450px; position: relative; }
+            .container { margin-top: 0; max-width: 800px; margin: 0 auto; }
+        }
     </style>
 </head>
 <body>
 
-<div id="player-outer">
+<div id="player-wrapper">
     <video id="my-video" class="video-js vjs-big-play-centered" controls preload="auto" playsinline webkit-playsinline></video>
     <iframe id="external-frame" allow="autoplay; fullscreen" allowfullscreen></iframe>
-    
-    <div id="custom-controls">
-        <button class="fs-btn" id="fs-toggle" onclick="togglePseudoFs()">GENİŞLET (REKLAMSIZ)</button>
+    <div id="ui-overlay">
+        <button class="action-btn" onclick="toggleZoom()">TAM EKRAN (REKLAMSIZ)</button>
     </div>
 </div>
 
-<div class="container" id="channel-list"></div>
-
-<script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
-<script>
-    const player = videojs('my-video');
-    const iframe = document.getElementById('external-frame');
-    const outer = document.getElementById('player-outer');
-    const fsBtn = document.getElementById('fs-toggle');
-
-    // Sahte Tam Ekran Fonksiyonu
-    function togglePseudoFs() {
-        outer.classList.toggle('pseudo-fs');
-        if (outer.classList.contains('pseudo-fs')) {
-            fsBtn.innerText = "KÜÇÜLT";
-            // Ekranı yatay çevirmesi için kullanıcıya uyarı verebilirsin
-        } else {
-            fsBtn.innerText = "GENİŞLET (REKLAMSIZ)";
-        }
-    }
-
-    function playChannel(url, isM3u8) {
-        if (isM3u8) {
-            iframe.style.display = 'none';
-            document.getElementById('my-video').style.display = 'block';
-            player.src({ src: url, type: 'application/x-mpegURL' });
-            player.play();
-        } else {
-            player.pause();
-            document.getElementById('my-video').style.display = 'none';
-            iframe.style.display = 'block';
-            iframe.src = url;
-        }
-    }
-
-    // Örnek Kanal Listesi
-    const channels = [
-        { name: "REKLAMLI DIŞ YAYIN", url: "https://antenasport.org/beinsport3tr.php", m3u8: false },
-        { name: "TEMİZ M3U8 YAYIN", url: "https://rkhubpaomb.turknet.ercdn.net/fwjkgpasof/tv8bucuk/tv8bucuk.m3u8", m3u8: true }
-    ];
-
-    const listDiv = document.getElementById('channel-list');
-    channels.forEach(ch => {
-        const card = document.createElement('div');
-        card.className = 'ch-card';
-        card.onclick = () => playChannel(ch.url, ch.m3u8);
-        card.innerHTML = `<b>${ch.name}</b>`;
-        listDiv.appendChild(card);
-    });
-</script>
-</body>
-</html>
+<div
