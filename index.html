@@ -1,40 +1,102 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAÇTV | Kesin Çözüm</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MAÇTV | VIP Player</title>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
-        body { background: #000; color: #fff; margin: 0; font-family: sans-serif; }
-        video { width: 100%; aspect-ratio: 16/9; background: #000; border-bottom: 2px solid #2563eb; }
-        .ch { padding: 20px; background: #111; margin: 10px; border-radius: 10px; cursor: pointer; border: 1px solid #222; }
+        :root { --blue: #2563eb; --bg: #000; --card: #111; }
+        body { background: var(--bg); color: #fff; margin: 0; font-family: sans-serif; overflow-x: hidden; }
+        
+        /* Video Alanı */
+        #video-container { width: 100%; aspect-ratio: 16/9; background: #000; position: sticky; top: 0; z-index: 100; border-bottom: 2px solid var(--blue); }
+        video { width: 100%; height: 100%; object-fit: contain; }
+
+        /* Kanal Listesi */
+        .container { padding: 10px; }
+        .ch { 
+            padding: 18px; background: var(--card); margin-bottom: 10px; 
+            border-radius: 12px; cursor: pointer; border: 1px solid #222;
+            display: flex; align-items: center; transition: 0.2s;
+        }
+        .ch:active { transform: scale(0.97); background: #1a1a1a; }
+        .ch-icon { width: 40px; height: 40px; background: var(--blue); border-radius: 8px; margin-right: 15px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .ch-name { font-size: 16px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<video id="video" controls playsinline></video>
-
-<div id="list">
-    <div class="ch" onclick="load('proxy.php?url=' + encodeURIComponent('https://tv-trtspor1.medya.trt.com.tr/master_1080.m3u8'))">TRT SPOR (TEST)</div>
-    <div class="ch" onclick="load('proxy.php?url=' + encodeURIComponent('http://hayattv.pepbox.xyz:2095/live/smm0917tv2/smm1801zz00bb99/32770.m3u8'))">TABİİ SPOR 7</div>
+<div id="video-container">
+    <video id="video" controls playsinline webkit-playsinline></video>
 </div>
 
+<div class="container" id="list">
+    </div>
+
 <script>
-    var video = document.getElementById('video');
-    function load(url) {
+    // --- AYAR: Cloudflare Worker Linkini Buraya Yapıştır ---
+    const workerURL = "https://mactv-proxy.kullanici-adin.workers.dev/?url="; 
+
+    const kanallar = [
+        { ad: "TRT SPOR (TEST)", url: "https://tv-trtspor1.medya.trt.com.tr/master_1080.m3u8" },
+        { ad: "TABİİ SPOR 7", url: "http://hayattv.pepbox.xyz:2095/live/smm0917tv2/smm1801zz00bb99/32770.m3u8" }
+    ];
+
+    const video = document.getElementById('video');
+    const listContainer = document.getElementById('list');
+    let hls = null;
+
+    function load(rawUrl) {
+        // Cloudflare Proxy ile linki birleştir
+        const finalUrl = workerURL + encodeURIComponent(rawUrl);
+
+        // Eski yayını temizle
+        if (hls) { hls.destroy(); }
+
+        // Sesi açmayı zorla (Kullanıcı tıkladığı için izin verebilir)
+        video.muted = false;
+        video.volume = 1.0;
+
         if (Hls.isSupported()) {
-            var hls = new Hls({
-                xhrSetup: function(xhr) { xhr.withCredentials = false; }
-            });
-            hls.loadSource(url);
+            hls = new Hls();
+            hls.loadSource(finalUrl);
             hls.attachMedia(video);
-            hls.on(Hls.Events.MANIFEST_PARSED, function() { video.play(); });
+            hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                startPlayback();
+            });
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = url;
-            video.play();
+            video.src = finalUrl;
+            video.addEventListener('loadedmetadata', function() {
+                startPlayback();
+            });
         }
     }
+
+    function startPlayback() {
+        video.play().then(() => {
+            // Tam ekran yap
+            if (video.requestFullscreen) {
+                video.requestFullscreen();
+            } else if (video.webkitRequestFullscreen) {
+                video.webkitRequestFullscreen(); // iPhone/Safari için
+            }
+        }).catch(err => {
+            console.log("Ses engellendi, sessiz başlıyor...");
+            video.muted = true;
+            video.play();
+            if (video.requestFullscreen) video.requestFullscreen();
+        });
+    }
+
+    // Listeyi Oluştur
+    kanallar.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'ch';
+        div.onclick = () => load(item.url);
+        div.innerHTML = `<div class="ch-icon">TV</div><div class="ch-name">${item.ad}</div>`;
+        listContainer.appendChild(div);
+    });
 </script>
 </body>
 </html>
