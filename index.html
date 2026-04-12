@@ -50,4 +50,68 @@
     </div>
 </div>
 
-<div
+<div class="container" id="channel-list"></div>
+
+<script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+<script>
+    // Video.js Ayarları (iPhone Uyumluluğu Artırıldı)
+    const player = videojs('my-video', {
+        html5: { vhs: { overrideNative: false } }
+    });
+
+    const iframe = document.getElementById('external-frame');
+    const wrapper = document.getElementById('player-wrapper');
+    const videoEl = document.getElementById('my-video');
+
+    const channels = [
+        { name: "UFC", url: "https://trendy47.dad/event/live-event_ufc-327-prochazka-vs-ulberg-live-stream", isM3u: false },
+        { name: "BEIN 1 iOS", url: "https://andro.evrenosoglu53.lat/checklist/androstreamlivedebs1.m3u8", isM3u: true },
+        { name: "BEIN 2 HD", url: "https://zonalive.click/player/33/152", isM3u: false },
+        { name: "S SPORT", url: "https://andro.evrenosoglu53.lat/checklist/androstreamlivedess1.m3u8", isM3u: true },
+        { name: "TV8.5", url: "https://rkhubpaomb.turknet.ercdn.net/fwjkgpasof/tv8bucuk/tv8bucuk.m3u8", isM3u: true },
+        { name: "TRT SPOR", url: "https://tv-trtspor1.medya.trt.com.tr/master_1080.m3u8", isM3u: true },
+        { name: "TABİİ SPOR 1", url: "https://74betorspintv.live/channel?id=ex1", isM3u: false },
+        { name: "TABİİ SPOR 2", url: "https://mr8bv4kl1nq7sh9tw2xp5zj6g.medya.trt.com.tr/master_1440p.m3u8", isM3u: true }
+    ];
+
+    function playChannel(url, isM3u) {
+        window.scrollTo({top: 0, behavior: 'smooth'});
+        
+        // Hata yakalama
+        player.off('error'); 
+        
+        if (isM3u) {
+            iframe.style.display = 'none';
+            videoEl.style.display = 'block';
+            player.src({ src: url, type: 'application/x-mpegURL' });
+            player.load();
+            player.play().catch(e => {
+                console.log("Oynatma hatası. Link patlak olabilir.");
+            });
+            
+            player.on('error', function() {
+                alert("Bu yayın şu an açılmıyor (Link kırık veya SSL hatası).");
+            });
+        } else {
+            player.pause();
+            videoEl.style.display = 'none';
+            iframe.style.display = 'block';
+            iframe.src = url;
+        }
+    }
+
+    function toggleZoom() {
+        wrapper.classList.toggle('fullscreen-mode');
+    }
+
+    const listDiv = document.getElementById('channel-list');
+    channels.forEach(ch => {
+        const card = document.createElement('div');
+        card.className = 'ch-card';
+        card.onclick = () => playChannel(ch.url, ch.isM3u);
+        card.innerHTML = `<span class="ch-title">${ch.name}</span><span style="color:var(--blue)">▶</span>`;
+        listDiv.appendChild(card);
+    });
+</script>
+</body>
+</html>
