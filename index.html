@@ -2,100 +2,120 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MAÇTV | VIP Player</title>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>MAÇTV | VIP Panel</title>
+    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <style>
-        :root { --blue: #2563eb; --bg: #000; --card: #111; }
-        body { background: var(--bg); color: #fff; margin: 0; font-family: sans-serif; overflow-x: hidden; }
-        
-        /* Video Alanı */
-        #video-container { width: 100%; aspect-ratio: 16/9; background: #000; position: sticky; top: 0; z-index: 100; border-bottom: 2px solid var(--blue); }
-        video { width: 100%; height: 100%; object-fit: contain; }
+        :root { --bg: #05070a; --blue: #2563eb; }
+        body { background: var(--bg); color: white; margin: 0; font-family: sans-serif; }
 
-        /* Kanal Listesi */
-        .container { padding: 10px; }
-        .ch { 
-            padding: 18px; background: var(--card); margin-bottom: 10px; 
-            border-radius: 12px; cursor: pointer; border: 1px solid #222;
-            display: flex; align-items: center; transition: 0.2s;
+        /* PLAYER KONTEYNER */
+        #player-outer {
+            width: 100%;
+            position: fixed;
+            top: 0; left: 0;
+            z-index: 1000;
+            background: #000;
+            aspect-ratio: 16 / 9;
+            transition: all 0.3s ease;
         }
-        .ch:active { transform: scale(0.97); background: #1a1a1a; }
-        .ch-icon { width: 40px; height: 40px; background: var(--blue); border-radius: 8px; margin-right: 15px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-        .ch-name { font-size: 16px; font-weight: bold; }
+
+        /* SAHTE TAM EKRAN CLASS'I (Reklamsız Büyütme) */
+        #player-outer.pseudo-fs {
+            width: 100vw !important;
+            height: 100vh !important;
+            aspect-ratio: auto !important;
+            position: fixed !important;
+            top: 0 !important; left: 0 !important;
+            z-index: 99999 !important;
+        }
+
+        .video-js, iframe { width: 100% !important; height: 100% !important; border: none; }
+
+        /* ÖZEL KONTROL BUTONU */
+        #custom-controls {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            z-index: 100001;
+            display: flex;
+            gap: 5px;
+        }
+
+        .fs-btn {
+            background: rgba(37, 99, 235, 0.9);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        .container { margin-top: calc(56.25vw + 20px); padding: 15px; }
+        .ch-card { background: #121620; padding: 15px; margin-bottom: 10px; border-radius: 10px; cursor: pointer; border: 1px solid #1e293b; }
     </style>
 </head>
 <body>
 
-<div id="video-container">
-    <video id="video" controls playsinline webkit-playsinline></video>
+<div id="player-outer">
+    <video id="my-video" class="video-js vjs-big-play-centered" controls preload="auto" playsinline webkit-playsinline></video>
+    <iframe id="external-frame" allow="autoplay; fullscreen" allowfullscreen></iframe>
+    
+    <div id="custom-controls">
+        <button class="fs-btn" id="fs-toggle" onclick="togglePseudoFs()">GENİŞLET (REKLAMSIZ)</button>
+    </div>
 </div>
 
-<div class="container" id="list">
-    </div>
+<div class="container" id="channel-list"></div>
 
+<script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
 <script>
-    // --- AYAR: Cloudflare Worker Linkini Buraya Yapıştır ---
-    const workerURL = "https://mactv-proxy.kullanici-adin.workers.dev/?url="; 
+    const player = videojs('my-video');
+    const iframe = document.getElementById('external-frame');
+    const outer = document.getElementById('player-outer');
+    const fsBtn = document.getElementById('fs-toggle');
 
-    const kanallar = [
-        { ad: "TRT SPOR (TEST)", url: "https://tv-trtspor1.medya.trt.com.tr/master_1080.m3u8" },
-        { ad: "TABİİ SPOR 7", url: "http://hayattv.pepbox.xyz:2095/live/smm0917tv2/smm1801zz00bb99/32770.m3u8" }
-    ];
-
-    const video = document.getElementById('video');
-    const listContainer = document.getElementById('list');
-    let hls = null;
-
-    function load(rawUrl) {
-        // Cloudflare Proxy ile linki birleştir
-        const finalUrl = workerURL + encodeURIComponent(rawUrl);
-
-        // Eski yayını temizle
-        if (hls) { hls.destroy(); }
-
-        // Sesi açmayı zorla (Kullanıcı tıkladığı için izin verebilir)
-        video.muted = false;
-        video.volume = 1.0;
-
-        if (Hls.isSupported()) {
-            hls = new Hls();
-            hls.loadSource(finalUrl);
-            hls.attachMedia(video);
-            hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                startPlayback();
-            });
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = finalUrl;
-            video.addEventListener('loadedmetadata', function() {
-                startPlayback();
-            });
+    // Sahte Tam Ekran Fonksiyonu
+    function togglePseudoFs() {
+        outer.classList.toggle('pseudo-fs');
+        if (outer.classList.contains('pseudo-fs')) {
+            fsBtn.innerText = "KÜÇÜLT";
+            // Ekranı yatay çevirmesi için kullanıcıya uyarı verebilirsin
+        } else {
+            fsBtn.innerText = "GENİŞLET (REKLAMSIZ)";
         }
     }
 
-    function startPlayback() {
-        video.play().then(() => {
-            // Tam ekran yap
-            if (video.requestFullscreen) {
-                video.requestFullscreen();
-            } else if (video.webkitRequestFullscreen) {
-                video.webkitRequestFullscreen(); // iPhone/Safari için
-            }
-        }).catch(err => {
-            console.log("Ses engellendi, sessiz başlıyor...");
-            video.muted = true;
-            video.play();
-            if (video.requestFullscreen) video.requestFullscreen();
-        });
+    function playChannel(url, isM3u8) {
+        if (isM3u8) {
+            iframe.style.display = 'none';
+            document.getElementById('my-video').style.display = 'block';
+            player.src({ src: url, type: 'application/x-mpegURL' });
+            player.play();
+        } else {
+            player.pause();
+            document.getElementById('my-video').style.display = 'none';
+            iframe.style.display = 'block';
+            iframe.src = url;
+        }
     }
 
-    // Listeyi Oluştur
-    kanallar.forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'ch';
-        div.onclick = () => load(item.url);
-        div.innerHTML = `<div class="ch-icon">TV</div><div class="ch-name">${item.ad}</div>`;
-        listContainer.appendChild(div);
+    // Örnek Kanal Listesi
+    const channels = [
+        { name: "REKLAMLI DIŞ YAYIN", url: "https://antenasport.org/beinsport3tr.php", m3u8: false },
+        { name: "TEMİZ M3U8 YAYIN", url: "https://rkhubpaomb.turknet.ercdn.net/fwjkgpasof/tv8bucuk/tv8bucuk.m3u8", m3u8: true }
+    ];
+
+    const listDiv = document.getElementById('channel-list');
+    channels.forEach(ch => {
+        const card = document.createElement('div');
+        card.className = 'ch-card';
+        card.onclick = () => playChannel(ch.url, ch.m3u8);
+        card.innerHTML = `<b>${ch.name}</b>`;
+        listDiv.appendChild(card);
     });
 </script>
 </body>
