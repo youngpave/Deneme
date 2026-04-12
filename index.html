@@ -2,124 +2,153 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAÇTV Genel Panel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>MAÇTV | VIP Panel</title>
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <style>
-        body { background: #05070a; color: white; margin: 0; font-family: sans-serif; }
-        
-        /* HER YERDE GÖRÜNEN SABİT ÜST BAR */
-        .header-bar {
-            background: #121620;
-            padding: 10px;
-            display: flex;
-            justify-content: center;
-            border-bottom: 2px solid #2563eb;
-            position: sticky;
-            top: 0;
-            z-index: 9999;
+        :root { --bg: #05070a; --card: #121620; --blue: #2563eb; --gray: #94a3b8; }
+        html, body { 
+            background: var(--bg); color: white; font-family: -apple-system, sans-serif; 
+            margin: 0; padding: 0; height: 100%; overflow: hidden;
+            padding-top: env(safe-area-inset-top);
         }
-
-        .fs-button {
-            background: #2563eb;
-            color: white;
+        
+        /* Oynatıcı Kapsayıcısı */
+        #player-container { 
+            width: 100%; background: #000; position: fixed; top: env(safe-area-inset-top); 
+            z-index: 1000; border-bottom: 2px solid var(--blue); display: flex; justify-content: center;
+        }
+        
+        /* Tam Ekran Butonu */
+        #fs-toggle {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            z-index: 1001;
+            background: rgba(37, 99, 235, 0.8);
             border: none;
-            padding: 12px 24px;
+            color: white;
+            padding: 8px 12px;
             border-radius: 6px;
+            font-size: 12px;
             font-weight: bold;
             cursor: pointer;
-            font-size: 14px;
+            backdrop-filter: blur(4px);
         }
 
-        /* OYNATICI ALANI */
-        #player-container {
-            width: 100%;
-            background: #000;
-            aspect-ratio: 16 / 9;
-            position: relative;
+        @media (max-width: 1023px) { #player-container { aspect-ratio: 16 / 9; } }
+        @media (min-width: 1024px) { #player-container { height: 400px; } }
+        
+        .video-js { width: 100% !important; height: 100% !important; }
+        iframe { width: 100%; height: 100%; border: none; display: none; background: #000; }
+        
+        .container { 
+            height: 100vh; overflow-y: auto; padding: 15px; box-sizing: border-box;
+            -webkit-overflow-scrolling: touch;
         }
-
-        /* Tam Ekran Modu İçin Özel Ayar */
-        #player-container:fullscreen { width: 100vw; height: 100vh; }
-        #player-container:-webkit-full-screen { width: 100vw; height: 100vh; }
-
-        .video-js, iframe { width: 100% !important; height: 100% !important; border: none; }
-
-        /* KANAL LİSTESİ */
-        .list-container { padding: 20px; }
-        .channel-card {
-            background: #1a1f2e;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            border: 1px solid #2d3748;
+        @media (max-width: 1023px) { .container { padding-top: calc(56.25vw + 20px); } }
+        @media (min-width: 1024px) { .container { padding-top: 420px; max-width: 800px; margin: 0 auto; } }
+        
+        .ch-card { 
+            background: var(--card); display: flex; align-items: center; padding: 14px; 
+            border-radius: 12px; margin-bottom: 8px; cursor: pointer; border: 1px solid rgba(255,255,255,0.05);
         }
+        .icon { 
+            width: 38px; height: 38px; background: linear-gradient(135deg, var(--blue), #1e40af); 
+            border-radius: 8px; margin-right: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold;
+        }
+        .info { flex: 1; }
+        .title { display: block; font-size: 14px; font-weight: 600; }
+        .tag { font-size: 9px; color: var(--gray); text-transform: uppercase; }
     </style>
 </head>
 <body>
 
-    <div class="header-bar">
-        <button class="fs-button" onclick="tamEkranYap()">⛶ EKRANI KAPLA (REKLAMSIZ)</button>
-    </div>
-
     <div id="player-container">
-        <video id="main-video" class="video-js vjs-default-skin vjs-big-play-centered" controls preload="auto" playsinline></video>
-        <iframe id="main-iframe" style="display:none;" allowfullscreen></iframe>
+        <button id="fs-toggle" onclick="toggleFullScreen()">TAM EKRAN</button>
+        
+        <video id="my-video" class="video-js vjs-big-play-centered" controls preload="auto" playsinline webkit-playsinline></video>
+        <iframe id="external-frame" allowfullscreen></iframe>
     </div>
 
-    <div class="list-container" id="kanal-liste">
-        </div>
+    <div class="container" id="channel-list"></div>
 
     <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
     <script>
-        const player = videojs('main-video');
-        const iframe = document.getElementById('main-iframe');
-        const videoTag = document.getElementById('main-video');
-        const container = document.getElementById('player-container');
+        const videoPlayer = videojs('my-video');
+        const iframe = document.getElementById('external-frame');
+        const videoElement = document.getElementById('my-video');
+        const playerContainer = document.getElementById('player-container');
 
-        // GENEL TAM EKRAN FONKSİYONU
-        function tamEkranYap() {
-            if (container.requestFullscreen) { container.requestFullscreen(); }
-            else if (container.webkitRequestFullscreen) { container.webkitRequestFullscreen(); } // Safari
-            else if (container.mozRequestFullScreen) { container.mozRequestFullScreen(); } // Firefox
-            else if (container.msRequestFullscreen) { container.msRequestFullscreen(); } // IE
-        }
-
-        // KANAL VERİLERİ
-        const kanallar = [
-            {ad: "TRT SPOR", url: "https://tv-trtspor1.medya.trt.com.tr/master_1080.m3u8", m3u8: true},
-            {ad: "TV 8.5", url: "https://rkhubpaomb.turknet.ercdn.net/fwjkgpasof/tv8bucuk/tv8bucuk.m3u8", m3u8: true},
-            {ad: "UFC YAYIN", url: "https://trendy47.dad/event/live-event_ufc-327-prochazka-vs-ulberg-live-stream", m3u8: false},
-            {ad: "BEIN 1", url: "https://andro.evrenosoglu53.lat/checklist/androstreamlivedebs1.m3u8", m3u8: true}
+        const channels = [
+            { name: "UFC", url: "https://trendy47.dad/event/live-event_ufc-327-prochazka-vs-ulberg-live-stream" },
+            { name: "BEIN SPORTS HABER", url: "https://www.canlitv.diy/player/iframe.php?url=https://www.youtube.com/embed/i7UpPgxfZZ8" },
+            { name: "BEIN SPORTS 1 HD", url: "https://l1l1.link/stream?id=91" },
+            { name: "BEIN SPORTS 1 HD iOS", url: "https://andro.evrenosoglu53.lat/checklist/androstreamlivedebs1.m3u8" },
+            { name: "BEIN SPORTS 2 HD", url: "https://zonalive.click/player/33/152" },
+            { name: "BEIN SPORTS 3 HD", url: "https://antenasport.org/beinsport3tr.php" },
+            { name: "BEIN SPORTS 4", url: "https://andro.evrenosoglu53.lat/checklist/androstreamlivedebs4.m3u8" },
+            { name: "BEIN SPORTS 5", url: "https://andro.evrenosoglu53.lat/checklist/androstreamlivedebs5.m3u8" },
+            { name: "S SPORT", url: "https://andro.evrenosoglu53.lat/checklist/androstreamlivedess1.m3u8" },
+            { name: "S SPORT 2", url: "https://andro.evrenosoglu53.lat/checklist/androstreamlivedess2.m3u8" },
+            { name: "TV8.5", url: "https://rkhubpaomb.turknet.ercdn.net/fwjkgpasof/tv8bucuk/tv8bucuk.m3u8" },
+            { name: "TRT SPOR", url: "https://tv-trtspor1.medya.trt.com.tr/master_1080.m3u8" },
+            { name: "TABİİ SPOR 1", url: "https://74betorspintv.live/channel?id=ex1" },
+            { name: "TABİİ SPOR 2", url: "https://mr8bv4kl1nq7sh9tw2xp5zj6g.medya.trt.com.tr/master_1440p.m3u8" },
+            { name: "TABİİ SPOR 3", url: "https://mr4vl7nq2sh9tw5xp1zk3gj8b.medya.trt.com.tr/master_1440p.m3u8" },
+            { name: "TABİİ SPOR 4", url: "https://sh7tq2nw5mr1vl9xp4zk3gj8k.medya.trt.com.tr/master_1440p.m3u8" },
+            { name: "TABİİ SPOR 5", url: "https://z3mmimwz148csv0vaxtphqspf.medya.trt.com.tr/master_1080p.m3u8" },
+            { name: "TABİİ SPOR 6", url: "https://nw5mr1vl9xp4zk2sh7tq3gj6b.medya.trt.com.tr/master_1440p.m3u8" },
+            { name: "TABİİ SPOR 7", url: "https://selcuksports179.top/matches?id=bein-sports-2" }
         ];
 
-        function kanalAc(url, isM3u8) {
-            window.scrollTo(0, 0);
-            if (isM3u8) {
-                iframe.style.display = "none";
-                videoTag.style.display = "block";
-                player.src({ src: url, type: 'application/x-mpegURL' });
-                player.play();
+        function playChannel(url) {
+            const isVideo = url.toLowerCase().includes('.m3u8');
+            if (isVideo) {
+                iframe.style.display = 'none';
+                videoElement.style.display = 'block';
+                videoPlayer.src({ src: url, type: 'application/x-mpegURL' });
+                videoPlayer.load();
+                videoPlayer.play().catch(e => console.log("Oynatma hatası:", e));
             } else {
-                player.pause();
-                videoTag.style.display = "none";
-                iframe.style.display = "block";
+                videoPlayer.pause();
+                videoElement.style.display = 'none';
+                iframe.style.display = 'block';
                 iframe.src = url;
             }
         }
 
-        // Listeyi Oluştur
-        const liste = document.getElementById('kanal-liste');
-        kanallar.forEach(k => {
+        // Tam Ekran Fonksiyonu
+        function toggleFullScreen() {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                if (playerContainer.requestFullscreen) {
+                    playerContainer.requestFullscreen();
+                } else if (playerContainer.webkitRequestFullscreen) {
+                    playerContainer.webkitRequestFullscreen();
+                }
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
+            }
+        }
+
+        const listDiv = document.getElementById('channel-list');
+        channels.forEach(ch => {
             const card = document.createElement('div');
-            card.className = 'channel-card';
-            card.onclick = () => kanalAc(k.url, k.m3u8);
-            card.innerHTML = `<span>${k.ad}</span> <b>OYNAT ▶</b>`;
-            liste.appendChild(card);
+            card.className = 'ch-card';
+            card.onclick = () => playChannel(ch.url);
+            card.innerHTML = `
+                <div class="icon">${ch.name.substring(0,2)}</div>
+                <div class="info">
+                    <span class="title">${ch.name}</span>
+                    <span class="tag">MAÇTV Yayını</span>
+                </div>
+                <div style="color:var(--blue)">▶</div>
+            `;
+            listDiv.appendChild(card);
         });
     </script>
 </body>
