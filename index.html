@@ -83,4 +83,73 @@
 
         /* Tam Ekran Modu (Tüm cihazlar için zorlama) */
         #main-player-container:fullscreen { width: 100vw; height: 100vh; top: 0; }
-        #main-player-container:-webkit-full-screen { width: 100vw; height: 10
+        #main-player-container:-webkit-full-screen { width: 100vw; height: 100vh; top: 0; }
+    </style>
+</head>
+<body>
+
+    <div id="top-header">
+        <button class="fs-button" onclick="makeFullScreen()">⛶ REKLAMSIZ TAM EKRAN</button>
+    </div>
+
+    <div id="main-player-container">
+        <video id="vjs-player" class="video-js vjs-big-play-centered" controls preload="auto" playsinline webkit-playsinline></video>
+        <iframe id="ext-iframe" allow="autoplay; fullscreen" allowfullscreen webkitallowfullscreen></iframe>
+    </div>
+
+    <div class="content-area" id="list-container">
+        </div>
+
+    <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+    <script>
+        const player = videojs('vjs-player');
+        const iframe = document.getElementById('ext-iframe');
+        const container = document.getElementById('main-player-container');
+        const videoTag = document.getElementById('vjs-player');
+
+        // TAM EKRAN FONKSİYONU (Dış Buton)
+        function makeFullScreen() {
+            if (container.requestFullscreen) {
+                container.requestFullscreen();
+            } else if (container.webkitRequestFullscreen) {
+                container.webkitRequestFullscreen(); // iPhone / Safari
+            } else if (videoTag.webkitEnterFullscreen) {
+                videoTag.webkitEnterFullscreen(); // Eski iOS cihazlar
+            }
+        }
+
+        const myChannels = [
+            { title: "UFC", link: "https://trendy47.dad/event/live-event_ufc-327-prochazka-vs-ulberg-live-stream", isM3u8: false },
+            { title: "BEIN 1 iOS", link: "https://andro.evrenosoglu53.lat/checklist/androstreamlivedebs1.m3u8", isM3u8: true },
+            { title: "S SPORT", link: "https://andro.evrenosoglu53.lat/checklist/androstreamlivedess1.m3u8", isM3u8: true },
+            { title: "TV 8.5", link: "https://rkhubpaomb.turknet.ercdn.net/fwjkgpasof/tv8bucuk/tv8bucuk.m3u8", isM3u8: true },
+            { title: "TRT SPOR", link: "https://tv-trtspor1.medya.trt.com.tr/master_1080.m3u8", isM3u8: true },
+            { title: "TABİİ SPOR 1", link: "https://74betorspintv.live/channel?id=ex1", isM3u8: false }
+        ];
+
+        function startStream(url, m3u8) {
+            window.scrollTo({top: 0, behavior: 'smooth'});
+            if (m3u8) {
+                iframe.style.display = 'none';
+                videoTag.style.display = 'block';
+                player.src({ src: url, type: 'application/x-mpegURL' });
+                player.play();
+            } else {
+                player.pause();
+                videoTag.style.display = 'none';
+                iframe.style.display = 'block';
+                iframe.src = url;
+            }
+        }
+
+        const listWrap = document.getElementById('list-container');
+        myChannels.forEach(c => {
+            const div = document.createElement('div');
+            div.className = 'channel-item';
+            div.onclick = () => startStream(c.link, c.isM3u8);
+            div.innerHTML = `<span class="channel-name">${c.title}</span><span class="play-icon">▶</span>`;
+            listWrap.appendChild(div);
+        });
+    </script>
+</body>
+</html>
