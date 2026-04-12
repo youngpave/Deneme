@@ -6,47 +6,71 @@
     <title>MAÇTV | VIP Panel</title>
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <style>
-        :root { --bg: #05070a; --card: #121620; --blue: #2563eb; }
-        body { background: var(--bg); color: white; margin: 0; font-family: -apple-system, sans-serif; overflow-x: hidden; }
-        
+        :root { --bg: #05070a; --blue: #2563eb; --red: #ef4444; }
+        body { background: var(--bg); color: white; margin: 0; font-family: sans-serif; overflow-x: hidden; }
+
+        /* PLAYER ALANI */
         #player-wrapper {
-            width: 100%; position: fixed; top: 0; left: 0; z-index: 1000;
-            background: #000; aspect-ratio: 16 / 9; border-bottom: 2px solid var(--blue);
+            width: 100%;
+            position: fixed;
+            top: 0; left: 0;
+            z-index: 1000;
+            background: #000;
+            aspect-ratio: 16 / 9;
+            border-bottom: 2px solid var(--blue);
         }
 
-        #player-wrapper.fullscreen-mode {
-            width: 100vw !important; height: 100vh !important; aspect-ratio: auto !important; z-index: 99999 !important;
+        /* Üstteki Harici Tam Ekran Butonu */
+        #top-controls {
+            position: absolute;
+            top: -40px; /* Player'ın hemen üzerinde durur */
+            right: 10px;
+            z-index: 2000;
+            display: flex;
+            gap: 10px;
+        }
+
+        .external-fs-btn {
+            background: var(--blue);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(37, 99, 235, 0.5);
+        }
+
+        /* Konteynerı aşağı kaydırdık çünkü player üstte sabit */
+        .container { 
+            margin-top: calc(56.25vw + 50px); 
+            padding: 15px; 
         }
 
         .video-js, iframe { width: 100% !important; height: 100% !important; border: none; }
 
-        #ui-overlay { position: absolute; bottom: 10px; right: 10px; z-index: 100000; }
-        .action-btn {
-            background: rgba(37, 99, 235, 0.9); color: white; border: none;
-            padding: 8px 12px; border-radius: 6px; font-weight: bold; font-size: 11px;
-        }
+        /* Fullscreen Aktifken Stil */
+        :fullscreen #player-wrapper { width: 100vw; height: 100vh; }
+        :-webkit-full-screen #player-wrapper { width: 100vw; height: 100vh; }
 
-        .container { margin-top: calc(56.25vw + 20px); padding: 15px; }
         .ch-card { 
-            background: var(--card); padding: 15px; margin-bottom: 8px; 
-            border-radius: 12px; cursor: pointer; border: 1px solid rgba(255,255,255,0.05);
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .ch-title { font-weight: 600; font-size: 14px; }
-
-        @media (min-width: 1024px) {
-            #player-wrapper { height: 450px; position: relative; }
-            .container { margin-top: 0; max-width: 800px; margin: 0 auto; }
+            background: #121620; padding: 15px; margin-bottom: 8px; 
+            border-radius: 12px; border: 1px solid #1e293b; 
+            display: flex; justify-content: space-between;
         }
     </style>
 </head>
 <body>
 
-<div id="player-wrapper">
-    <video id="my-video" class="video-js vjs-big-play-centered" controls preload="auto" playsinline webkit-playsinline></video>
-    <iframe id="external-frame" allow="autoplay; fullscreen" allowfullscreen></iframe>
-    <div id="ui-overlay">
-        <button class="action-btn" onclick="toggleZoom()">TAM EKRAN (REKLAMSIZ)</button>
+<div style="position: relative;">
+    <div id="top-controls">
+        <button class="external-fs-btn" onclick="openFullscreen()">⛶ TAM EKRAN YAP</button>
+    </div>
+
+    <div id="player-wrapper">
+        <video id="my-video" class="video-js vjs-big-play-centered" controls preload="auto" playsinline webkit-playsinline></video>
+        <iframe id="external-frame" allow="autoplay; fullscreen" allowfullscreen></iframe>
     </div>
 </div>
 
@@ -54,62 +78,49 @@
 
 <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
 <script>
-    // Video.js Ayarları (iPhone Uyumluluğu Artırıldı)
-    const player = videojs('my-video', {
-        html5: { vhs: { overrideNative: false } }
-    });
-
+    const player = videojs('my-video');
     const iframe = document.getElementById('external-frame');
     const wrapper = document.getElementById('player-wrapper');
-    const videoEl = document.getElementById('my-video');
+
+    // TARAYICININ KENDİ TAM EKRAN ÖZELLİĞİNİ TETİKLER
+    function openFullscreen() {
+        if (wrapper.requestFullscreen) {
+            wrapper.requestFullscreen();
+        } else if (wrapper.webkitRequestFullscreen) { /* Safari / iPhone */
+            wrapper.webkitRequestFullscreen();
+        } else if (wrapper.msRequestFullscreen) {
+            wrapper.msRequestFullscreen();
+        }
+    }
 
     const channels = [
-        { name: "UFC", url: "https://trendy47.dad/event/live-event_ufc-327-prochazka-vs-ulberg-live-stream", isM3u: false },
-        { name: "BEIN 1 iOS", url: "https://andro.evrenosoglu53.lat/checklist/androstreamlivedebs1.m3u8", isM3u: true },
-        { name: "BEIN 2 HD", url: "https://zonalive.click/player/33/152", isM3u: false },
-        { name: "S SPORT", url: "https://andro.evrenosoglu53.lat/checklist/androstreamlivedess1.m3u8", isM3u: true },
-        { name: "TV8.5", url: "https://rkhubpaomb.turknet.ercdn.net/fwjkgpasof/tv8bucuk/tv8bucuk.m3u8", isM3u: true },
+        { name: "TV8.5 (Hızlı Test)", url: "https://rkhubpaomb.turknet.ercdn.net/fwjkgpasof/tv8bucuk/tv8bucuk.m3u8", isM3u: true },
         { name: "TRT SPOR", url: "https://tv-trtspor1.medya.trt.com.tr/master_1080.m3u8", isM3u: true },
-        { name: "TABİİ SPOR 1", url: "https://74betorspintv.live/channel?id=ex1", isM3u: false },
-        { name: "TABİİ SPOR 2", url: "https://mr8bv4kl1nq7sh9tw2xp5zj6g.medya.trt.com.tr/master_1440p.m3u8", isM3u: true }
+        { name: "UFC (Iframe)", url: "https://trendy47.dad/event/live-event_ufc-327-prochazka-vs-ulberg-live-stream", isM3u: false }
     ];
 
     function playChannel(url, isM3u) {
-        window.scrollTo({top: 0, behavior: 'smooth'});
-        
-        // Hata yakalama
-        player.off('error'); 
-        
+        window.scrollTo(0,0);
         if (isM3u) {
             iframe.style.display = 'none';
-            videoEl.style.display = 'block';
+            document.getElementById('my-video').style.display = 'block';
             player.src({ src: url, type: 'application/x-mpegURL' });
-            player.load();
-            player.play().catch(e => {
-                console.log("Oynatma hatası. Link patlak olabilir.");
-            });
-            
-            player.on('error', function() {
-                alert("Bu yayın şu an açılmıyor (Link kırık veya SSL hatası).");
-            });
+            player.play();
         } else {
             player.pause();
-            videoEl.style.display = 'none';
+            document.getElementById('my-video').style.display = 'none';
             iframe.style.display = 'block';
             iframe.src = url;
         }
     }
 
-    function toggleZoom() {
-        wrapper.classList.toggle('fullscreen-mode');
-    }
-
+    // Listeleme
     const listDiv = document.getElementById('channel-list');
     channels.forEach(ch => {
         const card = document.createElement('div');
         card.className = 'ch-card';
         card.onclick = () => playChannel(ch.url, ch.isM3u);
-        card.innerHTML = `<span class="ch-title">${ch.name}</span><span style="color:var(--blue)">▶</span>`;
+        card.innerHTML = `<span>${ch.name}</span> <span>▶</span>`;
         listDiv.appendChild(card);
     });
 </script>
