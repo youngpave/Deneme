@@ -6,123 +6,81 @@
     <title>MAÇTV | VIP Panel</title>
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <style>
-        :root { --bg: #05070a; --blue: #2563eb; --red: #ef4444; }
-        body { background: var(--bg); color: white; margin: 0; font-family: sans-serif; overflow-x: hidden; }
+        :root { --bg: #05070a; --blue: #2563eb; --card: #121620; }
+        
+        body { 
+            background: var(--bg); color: white; margin: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
+            overflow-x: hidden;
+        }
 
-        /* PLAYER ALANI */
-        #player-wrapper {
+        /* Üst Kontrol Çubuğu (Tam Ekran Butonunun Olduğu Yer) */
+        #top-header {
             width: 100%;
+            height: 60px;
+            background: #1a1f2e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             position: fixed;
-            top: 0; left: 0;
-            z-index: 1000;
-            background: #000;
-            aspect-ratio: 16 / 9;
+            top: 0;
+            z-index: 9999;
             border-bottom: 2px solid var(--blue);
         }
 
-        /* Üstteki Harici Tam Ekran Butonu */
-        #top-controls {
-            position: absolute;
-            top: -40px; /* Player'ın hemen üzerinde durur */
-            right: 10px;
-            z-index: 2000;
-            display: flex;
-            gap: 10px;
-        }
-
-        .external-fs-btn {
+        .fs-button {
             background: var(--blue);
             color: white;
             border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
+            padding: 10px 20px;
+            border-radius: 30px;
             font-weight: bold;
-            font-size: 12px;
+            font-size: 14px;
             cursor: pointer;
-            box-shadow: 0 0 10px rgba(37, 99, 235, 0.5);
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+            animation: pulse 2s infinite;
         }
 
-        /* Konteynerı aşağı kaydırdık çünkü player üstte sabit */
-        .container { 
-            margin-top: calc(56.25vw + 50px); 
-            padding: 15px; 
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Oynatıcı Alanı */
+        #main-player-container {
+            width: 100%;
+            position: fixed;
+            top: 60px; /* Header'ın hemen altı */
+            left: 0;
+            z-index: 1000;
+            background: #000;
+            aspect-ratio: 16 / 9;
         }
 
         .video-js, iframe { width: 100% !important; height: 100% !important; border: none; }
 
-        /* Fullscreen Aktifken Stil */
-        :fullscreen #player-wrapper { width: 100vw; height: 100vh; }
-        :-webkit-full-screen #player-wrapper { width: 100vw; height: 100vh; }
-
-        .ch-card { 
-            background: #121620; padding: 15px; margin-bottom: 8px; 
-            border-radius: 12px; border: 1px solid #1e293b; 
-            display: flex; justify-content: space-between;
+        /* Kanal Listesi */
+        .content-area { 
+            margin-top: calc(56.25vw + 80px); 
+            padding: 15px; 
         }
-    </style>
-</head>
-<body>
 
-<div style="position: relative;">
-    <div id="top-controls">
-        <button class="external-fs-btn" onclick="openFullscreen()">⛶ TAM EKRAN YAP</button>
-    </div>
-
-    <div id="player-wrapper">
-        <video id="my-video" class="video-js vjs-big-play-centered" controls preload="auto" playsinline webkit-playsinline></video>
-        <iframe id="external-frame" allow="autoplay; fullscreen" allowfullscreen></iframe>
-    </div>
-</div>
-
-<div class="container" id="channel-list"></div>
-
-<script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
-<script>
-    const player = videojs('my-video');
-    const iframe = document.getElementById('external-frame');
-    const wrapper = document.getElementById('player-wrapper');
-
-    // TARAYICININ KENDİ TAM EKRAN ÖZELLİĞİNİ TETİKLER
-    function openFullscreen() {
-        if (wrapper.requestFullscreen) {
-            wrapper.requestFullscreen();
-        } else if (wrapper.webkitRequestFullscreen) { /* Safari / iPhone */
-            wrapper.webkitRequestFullscreen();
-        } else if (wrapper.msRequestFullscreen) {
-            wrapper.msRequestFullscreen();
+        .channel-item { 
+            background: var(--card); 
+            padding: 18px; 
+            margin-bottom: 12px; 
+            border-radius: 15px; 
+            display: flex; 
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(255,255,255,0.05);
+            cursor: pointer;
         }
-    }
 
-    const channels = [
-        { name: "TV8.5 (Hızlı Test)", url: "https://rkhubpaomb.turknet.ercdn.net/fwjkgpasof/tv8bucuk/tv8bucuk.m3u8", isM3u: true },
-        { name: "TRT SPOR", url: "https://tv-trtspor1.medya.trt.com.tr/master_1080.m3u8", isM3u: true },
-        { name: "UFC (Iframe)", url: "https://trendy47.dad/event/live-event_ufc-327-prochazka-vs-ulberg-live-stream", isM3u: false }
-    ];
+        .channel-name { font-weight: 700; font-size: 16px; color: #fff; }
+        .play-icon { color: var(--blue); font-size: 20px; }
 
-    function playChannel(url, isM3u) {
-        window.scrollTo(0,0);
-        if (isM3u) {
-            iframe.style.display = 'none';
-            document.getElementById('my-video').style.display = 'block';
-            player.src({ src: url, type: 'application/x-mpegURL' });
-            player.play();
-        } else {
-            player.pause();
-            document.getElementById('my-video').style.display = 'none';
-            iframe.style.display = 'block';
-            iframe.src = url;
-        }
-    }
-
-    // Listeleme
-    const listDiv = document.getElementById('channel-list');
-    channels.forEach(ch => {
-        const card = document.createElement('div');
-        card.className = 'ch-card';
-        card.onclick = () => playChannel(ch.url, ch.isM3u);
-        card.innerHTML = `<span>${ch.name}</span> <span>▶</span>`;
-        listDiv.appendChild(card);
-    });
-</script>
-</body>
-</html>
+        /* Tam Ekran Modu (Tüm cihazlar için zorlama) */
+        #main-player-container:fullscreen { width: 100vw; height: 100vh; top: 0; }
+        #main-player-container:-webkit-full-screen { width: 100vw; height: 10
