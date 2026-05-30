@@ -120,13 +120,13 @@ def proxy_ts():
             headers=headers,
             stream=True,
             allow_redirects=True,
-            timeout=(10, 30)
+            timeout=(10, 90)
         )
 
         response.raise_for_status()
 
         def generate():
-            for chunk in response.iter_content(chunk_size=8192):
+            for chunk in response.iter_content(chunk_size=65536):
                 if chunk:
                     yield chunk
 
